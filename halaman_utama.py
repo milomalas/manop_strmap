@@ -1,5 +1,6 @@
 import streamlit as st
 import geopandas as gpd
+import pandas as pd
 import folium
 from streamlit_folium import st_folium
 
@@ -175,7 +176,7 @@ def ActiveMap_df_filter(full_df):
 
     opts_tipeAlat = full_df[DFVAR["TYPE"]].unique().tolist()
     opts_tipeAlat = (
-        list(ALAT_DESCS.keys()) 
+        list(ALAT_DESCS.keys())
         + sorted(list( frozenset(opts_tipeAlat) - set(ALAT_DESCS.keys()) ))
     )
     sel_tipeAlat  = st.pills(
@@ -244,7 +245,7 @@ def ActiveMap_folium(filtered_df):
 
             ficon = folium.Icon(
                 color=ftype_attr["color"],
-                icon=ftype_attr["icon_fa"], 
+                icon=ftype_attr["icon_fa"],
                 prefix="fa",
             )
 
@@ -252,24 +253,24 @@ def ActiveMap_folium(filtered_df):
                 popup_txt = f'''
                              {getattr(pts,DFVAR["ID"])} {getattr(pts,DFVAR["NAME"])} {getattr(pts, DFVAR["TYPE"])}
                              '''
-                
+
                 folium.Marker(
                     location=(getattr(pts,DFVAR["LAT"]), getattr(pts,DFVAR["LON"])),
                     popup=popup_txt,
                     icon=ficon,
                 ).add_to(fg)
 
-    
+
     folium.LayerControl(collapsed=True,).add_to(m)
     return m
 
 ## ---- Tab contents callback functions ---- ###
-def call_ActiveMap(gdf_filtered, m_engine):
+def call_ActiveMap(df, m_engine):
     if m_engine == "No map":
         pass
-    elif len(gdf_filtered)>0:
+    elif len(df)>0:
         if m_engine == "Folium":
-            m_folium = ActiveMap_folium(gdf_filtered)
+            m_folium = ActiveMap_folium(df)
             st_folium(m_folium, use_container_width=True)
         else:
             st.info("Not yet implemented!", icon=":material/no_sim:")
@@ -305,7 +306,8 @@ def main():
         with st.container(border=True):
             # Filter
             gdf_filtered = ActiveMap_df_filter(gdf_metadata)
-            disable_map  = len(gdf_filtered)==0
+            df_filtered  = pd.DataFrame(gdf_filtered.drop(columns="geometry")) # convert to ordinary DataFrame; buggy GeoDataFrame geometry
+            disable_map  = len(df_filtered)==0
 
             # Map render with button
             col_render =  st.columns([8,2])
@@ -329,14 +331,13 @@ def main():
             #     )
 
         # Map render right away
-        call_ActiveMap(gdf_filtered, m_engine)
-
+        call_ActiveMap(df_filtered, m_engine)
 
         # Show DataFrame with a toggle
         st.divider()
         if st.toggle("Tampilkan tabel"):
-            if len(gdf_filtered):
-                st.dataframe(gdf_filtered)
+            if len(df_filtered):
+                st.dataframe(df_filtered)
             else:
                 warn_nodata()
             st.divider()
