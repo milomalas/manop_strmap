@@ -1,3 +1,4 @@
+import folium.plugins
 import streamlit as st
 import geopandas as gpd
 import pandas as pd
@@ -224,41 +225,61 @@ def ActiveMap_df_filter(full_df):
 def ActiveMap_folium(filtered_df):
     '''Draw Folium map'''
     # Map base
+    m_center = (-2,118)
+    m_maxbds = [(-12,93),(8,143)]
     m = folium.Map(
-        location=(-2,117),
+        location=m_center,
         tiles="cartodb positron",
         zoom_start=5,
         control_scale=True,
         width="100%",
         height="75%",
-        min_lat=-12, max_lat=8,
-        min_lon=93, max_lon=143,
+        min_lat=m_maxbds[0][0], max_lat=m_maxbds[1][0],
+        min_lon=m_maxbds[0][1], max_lon=m_maxbds[1][1],
         max_bounds=True,
     )
+
+    # Prov clusters
+    list_prov = filtered_df[DFVAR["PROV"]].unique().tolist()
+    fcluster_prov = [
+        folium.plugins.MarkerCluster(name=f"Provinsi {iprov}").add_to(m)
+        for iprov in list_prov
+    ]
 
     # Iterating per type
     for ftype, ftype_attr in ALAT_DESCS.items():
         fgdf = filtered_df[filtered_df[DFVAR["TYPE"]] == ftype]
 
+        # Marker icon appearance
+        ficon = folium.Icon(
+            color=ftype_attr["color"],
+            icon=ftype_attr["icon_fa"],
+            prefix="fa",
+        )
+
         if len(fgdf)>0:
-            fg = folium.FeatureGroup(name=ftype, overlay=True, show=True).add_to(m)
+            # list_prov = fgdf[DFVAR["PROV"]].unique().tolist()
+            # fcluster_prov = [
+            #     folium.plugins.MarkerCluster(name=f"Provinsi {iprov}").add_to(fg)
+            #     for iprov in list_prov
+            # ]
 
-            ficon = folium.Icon(
-                color=ftype_attr["color"],
-                icon=ftype_attr["icon_fa"],
-                prefix="fa",
-            )
+            #Iterate per prov (clusters)
+            for iprov,icluster in zip(list_prov, fcluster_prov):
+                fg = folium.FeatureGroup(name=ftype, overlay=True, show=True).add_to(icluster)
+                fgdf_iprov = fgdf[fgdf[DFVAR["PROV"]] == iprov]
 
-            for pts in fgdf.itertuples():
-                popup_txt = f'''
-                             {getattr(pts,DFVAR["ID"])} {getattr(pts,DFVAR["NAME"])} {getattr(pts, DFVAR["TYPE"])}
-                             '''
+                # Iterate points adding markers
+                for pts in fgdf_iprov.itertuples():
+                    popup_txt = f"""
+                        {getattr(pts,DFVAR["ID"])} {getattr(pts,DFVAR["NAME"])} {getattr(pts, DFVAR["TYPE"])}
+                        """
 
-                folium.Marker(
-                    location=(getattr(pts,DFVAR["LAT"]), getattr(pts,DFVAR["LON"])),
-                    popup=popup_txt,
-                    icon=ficon,
-                ).add_to(fg)
+                    folium.Marker(
+                        location=(getattr(pts,DFVAR["LAT"]), getattr(pts,DFVAR["LON"])),
+                        popup=popup_txt,
+                        icon=ficon,
+                    ).add_to(fg)
 
 
     folium.LayerControl(collapsed=True,).add_to(m)
