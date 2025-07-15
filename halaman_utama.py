@@ -1,8 +1,8 @@
-import folium.plugins
 import streamlit as st
 import geopandas as gpd
 import pandas as pd
 import folium
+import folium.plugins
 from streamlit_folium import st_folium
 
 
@@ -229,7 +229,7 @@ def ActiveMap_folium(filtered_df):
     m_maxbds = [(-12,93),(8,143)]
     m = folium.Map(
         location=m_center,
-        tiles="cartodb positron",
+        tiles=None,
         zoom_start=5,
         control_scale=True,
         width="100%",
@@ -238,13 +238,42 @@ def ActiveMap_folium(filtered_df):
         min_lon=m_maxbds[0][1], max_lon=m_maxbds[1][1],
         max_bounds=True,
     )
+    folium.TileLayer("OpenStreetMap", name="OpenStreetMap").add_to(m)
+    folium.TileLayer("Cartodb Positron", name="CartoDB Positron").add_to(m)
+    folium.TileLayer(
+        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+        name="ESRI WorldImagery",
+    ).add_to(m)
+    folium.TileLayer(
+        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}",
+        attr="Tiles &copy; Esri &mdash; National Geographic, Esri, DeLorme, NAVTEQ, UNEP-WCMC, USGS, NASA, ESA, METI, NRCAN, GEBCO, NOAA, iPC",
+        name="ESRI NatGeoWorldMap",
+    ).add_to(m)
+    folium.TileLayer(
+        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}",
+        attr="Tiles &copy; Esri &mdash; Source: Esri",
+        name="ESRI WorldShadedRelief",
+    ).add_to(m)
 
-    # Prov clusters
+    # Prov count for MarkerCluster groups
     list_prov = filtered_df[DFVAR["PROV"]].unique().tolist()
-    fcluster_prov = [
-        folium.plugins.MarkerCluster(name=f"Provinsi {iprov}").add_to(m)
-        for iprov in list_prov
-    ]
+
+    # MarkerCluster toggle
+    chk_cluster = st.checkbox("Cluster markers", value=True)
+    if chk_cluster:
+        # Make prov cluster groups (if toggled)
+        list_fg = [
+            folium.plugins.MarkerCluster(
+                name=f"Provinsi {iprov}", 
+                popups=f"Provinsi {iprov}",
+                control=False,
+            ).add_to(m)
+            for iprov in list_prov
+        ]
+    else:
+        # Add straight to map
+        list_fg = [m for _ in list_prov]
 
     # Iterating per type
     for ftype, ftype_attr in ALAT_DESCS.items():
@@ -257,29 +286,24 @@ def ActiveMap_folium(filtered_df):
             prefix="fa",
         )
 
-        if len(fgdf)>0:
-            # list_prov = fgdf[DFVAR["PROV"]].unique().tolist()
-            # fcluster_prov = [
-            #     folium.plugins.MarkerCluster(name=f"Provinsi {iprov}").add_to(fg)
-            #     for iprov in list_prov
-            # ]
-
+        if len(fgdf)>0:            
             #Iterate per prov (clusters)
-            for iprov,icluster in zip(list_prov, fcluster_prov):
-                fg = folium.FeatureGroup(name=ftype, overlay=True, show=True).add_to(icluster)
+            for iprov, ifg in zip(list_prov, list_fg):
                 fgdf_iprov = fgdf[fgdf[DFVAR["PROV"]] == iprov]
 
                 # Iterate points adding markers
                 for pts in fgdf_iprov.itertuples():
                     popup_txt = f"""
-                        {getattr(pts,DFVAR["ID"])} {getattr(pts,DFVAR["NAME"])} {getattr(pts, DFVAR["TYPE"])}
+                        <center><b>{getattr(pts,DFVAR["ID"])}</b></center>
+                        <center>{getattr(pts,DFVAR["NAME"])}</center> 
+                        <p>{getattr(pts, DFVAR["TYPE"])}<p>
                         """
 
                     folium.Marker(
                         location=(getattr(pts,DFVAR["LAT"]), getattr(pts,DFVAR["LON"])),
                         popup=popup_txt,
                         icon=ficon,
-                    ).add_to(fg)
+                    ).add_to(ifg)
 
 
     folium.LayerControl(collapsed=True,).add_to(m)
@@ -340,16 +364,6 @@ def main():
                     horizontal=True,
                     disabled=disable_map,
                 )
-
-            # with col_render[1]:
-            #     st.button(
-            #         label="**Gambar peta**",
-            #         type="primary",
-            #         # on_click=call_ActiveMap,
-            #         # args=(gdf_filtered, m_engine,),
-            #         disabled=disable_map,
-            #         use_container_width=True,
-            #     )
 
         # Map render right away
         call_ActiveMap(df_filtered, m_engine)
