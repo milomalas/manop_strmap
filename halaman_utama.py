@@ -68,6 +68,14 @@ PULAU_PROVS = {
     ],
 }
 
+DFVAR = {
+    "PROV" : "nama_propinsi",
+    "TYPE" : "type",
+    "NAME" : "name_station",
+    "ID"   : "id_station",
+    "LAT"  : "latt_station",
+    "LON"  : "long_station",
+}
 
 ### Helper Functions ###
 ########################
@@ -75,7 +83,8 @@ PULAU_PROVS = {
 def load_full_gdf():
     '''Load prepared GeoDataFrame data.'''
     data_dir = "data_geo/"
-    gdf = gpd.read_file(data_dir + "Metadata_tes_provIntersect.geojson")
+    # gdf = gpd.read_file(data_dir + "Metadata_tes_provIntersect.geojson") # Test
+    gdf = gpd.read_file(data_dir + "Metadata.geojson")
     return gdf
 
 def warn_nodata():
@@ -114,8 +123,8 @@ def on_change_tipeAlat():
 
     if len(sel_prov_old)>0:
         df_full        = load_full_gdf()
-        df_filtered    = df_full[df_full["type"].isin(sel_tipeAlat)]
-        new_valid_prov = df_filtered["nama_propinsi"].unique().tolist()
+        df_filtered    = df_full[df_full[DFVAR["TYPE"]].isin(sel_tipeAlat)]
+        new_valid_prov = df_filtered[DFVAR["PROV"]].unique().tolist()
 
         sel_prov_intersect = frozenset(sel_prov_old).intersection(frozenset(new_valid_prov))
         st.session_state["sel_prov_keys"] = list(sel_prov_intersect)
@@ -164,7 +173,7 @@ def ActiveMap_df_filter(full_df):
     # Filter tipeAlat
     st.text("Pilih tipe alat:")
 
-    opts_tipeAlat = full_df["type"].unique().tolist()
+    opts_tipeAlat = full_df[DFVAR["TYPE"]].unique().tolist()
     opts_tipeAlat = (
         list(ALAT_DESCS.keys()) 
         + sorted(list( frozenset(opts_tipeAlat) - set(ALAT_DESCS.keys()) ))
@@ -179,11 +188,11 @@ def ActiveMap_df_filter(full_df):
         on_change=on_change_tipeAlat,
     )
 
-    df_filtered = full_df[full_df["type"].isin(sel_tipeAlat)]
+    df_filtered = full_df[full_df[DFVAR["TYPE"]].isin(sel_tipeAlat)]
 
     # Filter provinsi
     st.text("Pilih provinsi:")
-    opts_prov = df_filtered["nama_propinsi"].unique().tolist()
+    opts_prov = df_filtered[DFVAR["PROV"]].unique().tolist()
     disable_sel_prov = (len(opts_prov)==0)
 
     pulau_buttons = ["**Pilih semua**"] + list(PULAU_PROVS.keys())
@@ -208,15 +217,15 @@ def ActiveMap_df_filter(full_df):
         disabled=disable_sel_prov,
     )
 
-    df_filtered = df_filtered[df_filtered["nama_propinsi"].isin(sel_prov)]
+    df_filtered = df_filtered[df_filtered[DFVAR["PROV"]].isin(sel_prov)]
     return df_filtered
 
 def ActiveMap_folium(filtered_df):
     '''Draw Folium map'''
     # Map base
     m = folium.Map(
-        location=(-2,117), 
-        tiles="cartodb positron", 
+        location=(-2,117),
+        tiles="cartodb positron",
         zoom_start=5,
         control_scale=True,
         width="100%",
@@ -228,7 +237,7 @@ def ActiveMap_folium(filtered_df):
 
     # Iterating per type
     for ftype, ftype_attr in ALAT_DESCS.items():
-        fgdf = filtered_df[filtered_df["type"] == ftype]
+        fgdf = filtered_df[filtered_df[DFVAR["TYPE"]] == ftype]
 
         if len(fgdf)>0:
             fg = folium.FeatureGroup(name=ftype, overlay=True, show=True).add_to(m)
@@ -240,18 +249,25 @@ def ActiveMap_folium(filtered_df):
             )
 
             for pts in fgdf.itertuples():
+                popup_txt = f'''
+                             {getattr(pts,DFVAR["ID"])} {getattr(pts,DFVAR["NAME"])} {getattr(pts, DFVAR["TYPE"])}
+                             '''
+                
                 folium.Marker(
-                    location=(float(pts.latt_station), float(pts.long_station)),
-                    popup=f"{pts.id_station} {pts.name_station} {pts.type}",
+                    location=(getattr(pts,DFVAR["LAT"]), getattr(pts,DFVAR["LON"])),
+                    popup=popup_txt,
                     icon=ficon,
                 ).add_to(fg)
 
-            folium.LayerControl(collapsed=True,).add_to(m)
+    
+    folium.LayerControl(collapsed=True,).add_to(m)
     return m
 
 ## ---- Tab contents callback functions ---- ###
 def call_ActiveMap(gdf_filtered, m_engine):
-    if len(gdf_filtered)>0:
+    if m_engine == "No map":
+        pass
+    elif len(gdf_filtered)>0:
         if m_engine == "Folium":
             m_folium = ActiveMap_folium(gdf_filtered)
             st_folium(m_folium, use_container_width=True)
@@ -297,7 +313,7 @@ def main():
                 m_engine = st.radio(
                     label="Map engine:",
                     label_visibility="visible",
-                    options=["Folium", "PyDeck"],
+                    options=["No map", "Folium", "PyDeck"],
                     horizontal=True,
                     disabled=disable_map,
                 )
@@ -311,7 +327,7 @@ def main():
             #         disabled=disable_map,
             #         use_container_width=True,
             #     )
-        
+
         # Map render right away
         call_ActiveMap(gdf_filtered, m_engine)
 
@@ -327,7 +343,7 @@ def main():
 
     with tabs[2]:
         st.info("Under construction. Coming soon!", icon="⚒️")
-    
+
     ## ---- end main() ---- ##
 
 
