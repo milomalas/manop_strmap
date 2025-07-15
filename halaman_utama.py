@@ -148,15 +148,27 @@ def GISMap_render_img():
         selection_mode="single",
         format_func=prepend_alat_icons,
     )
+    path_img = f"data_img/Peta {sel_GISimg}.png"
 
     if sel_GISimg:
         with st.container(border=True):
             st.image(
-                f"data_img/Peta {sel_GISimg}.png",
+                path_img,
                 caption=f"{ALAT_DESCS[sel_GISimg]["full name"]}"
                          " - Rendered with QGIS",
                 use_container_width=True,
             )
+        with st.columns(5)[2]:
+            with open(path_img, "rb") as f:
+                st.download_button(
+                    "Unduh gambar",
+                    data=f,
+                    file_name=f"Peta {sel_GISimg}.png",
+                    # type="primary",
+                    disabled=(sel_GISimg is None),
+                    use_container_width=True,
+                )
+
     else:
         st.info("Pilih peta terlebih dahulu.", icon=":material/info:")
 
