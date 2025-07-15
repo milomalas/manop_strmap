@@ -77,6 +77,9 @@ DFVAR = {
     "ID"   : "id_station",
     "LAT"  : "latt_station",
     "LON"  : "long_station",
+    "ELEV" : "elv_station",
+    "CITY" : "nama_kota",
+    "DISTR": "kecamatan",
 }
 
 ### Helper Functions ###
@@ -265,7 +268,7 @@ def ActiveMap_folium(filtered_df):
         # Make prov cluster groups (if toggled)
         list_fg = [
             folium.plugins.MarkerCluster(
-                name=f"Provinsi {iprov}", 
+                name=f"Provinsi {iprov}",
                 popups=f"Provinsi {iprov}",
                 control=False,
             ).add_to(m)
@@ -286,7 +289,7 @@ def ActiveMap_folium(filtered_df):
             prefix="fa",
         )
 
-        if len(fgdf)>0:            
+        if len(fgdf)>0:
             #Iterate per prov (clusters)
             for iprov, ifg in zip(list_prov, list_fg):
                 fgdf_iprov = fgdf[fgdf[DFVAR["PROV"]] == iprov]
@@ -294,14 +297,20 @@ def ActiveMap_folium(filtered_df):
                 # Iterate points adding markers
                 for pts in fgdf_iprov.itertuples():
                     popup_txt = f"""
-                        <center><b>{getattr(pts,DFVAR["ID"])}</b></center>
-                        <center>{getattr(pts,DFVAR["NAME"])}</center> 
-                        <p>{getattr(pts, DFVAR["TYPE"])}<p>
+                        <center><h4>{getattr(pts,DFVAR["ID"])}</h4></center>
+                        <center>{getattr(pts,DFVAR["NAME"])}</center>
+                        <hr>
+                        <b>Tipe alat:</b> {ALAT_DESCS[getattr(pts, DFVAR["TYPE"])]["full name"]}<br>
+                        <b>Site ID:</b> {getattr(pts, DFVAR["ID"])}<br>
+                        <b>Provinsi:</b> {getattr(pts, DFVAR["PROV"])}<br>
+                        <b>Kab/kota:</b> {getattr(pts, DFVAR["DISTR"])}<br>
+                        <b>Koordinat:</b> ({getattr(pts, DFVAR["LAT"]):.3f}, {getattr(pts, DFVAR["LON"]):.3f})<br>
+                        <b>Elevasi:</b> {getattr(pts, DFVAR["ELEV"]) if pd.notna(getattr(pts, DFVAR["ELEV"])) else "N/A"} m<br>
                         """
 
                     folium.Marker(
                         location=(getattr(pts,DFVAR["LAT"]), getattr(pts,DFVAR["LON"])),
-                        popup=popup_txt,
+                        popup=folium.Popup(popup_txt, max_width=500),
                         icon=ficon,
                     ).add_to(ifg)
 
