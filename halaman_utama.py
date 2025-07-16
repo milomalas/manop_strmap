@@ -82,6 +82,10 @@ DFVAR = {
     "DISTR": "kecamatan",
 }
 
+## ---- CSS ---- ##
+with open("./style.css", mode="r", encoding="utf-8") as css:
+    st.markdown( f"<style>{css.read()}</style>", unsafe_allow_html=True)
+
 ### Helper Functions ###
 ########################
 @st.cache_data
@@ -309,7 +313,7 @@ def ActiveMap_folium(filtered_df):
                 # Iterate points adding markers
                 for pts in fgdf_iprov.itertuples():
                     popup_txt = f"""
-                        <center><h4>{getattr(pts,DFVAR["ID"])}</h4></center>
+                        <center><h4><b>{getattr(pts,DFVAR["ID"])}</b></h4></center>
                         <center>{getattr(pts,DFVAR["NAME"])}</center>
                         <hr>
                         <b>Tipe alat:</b> {ALAT_DESCS[getattr(pts, DFVAR["TYPE"])]["full name"]}<br>
@@ -322,7 +326,7 @@ def ActiveMap_folium(filtered_df):
 
                     folium.Marker(
                         location=(getattr(pts,DFVAR["LAT"]), getattr(pts,DFVAR["LON"])),
-                        popup=folium.Popup(popup_txt, max_width=500),
+                        popup=folium.Popup(popup_txt, max_width=300),
                         icon=ficon,
                     ).add_to(ifg)
 
