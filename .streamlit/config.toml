@@ -1,7 +1,8 @@
 [theme]
 base = "light"
 
-primaryColor = "#38C166"
+primaryColor = "#22A451"
 # primaryColor = "#5f98ff"
+# primaryColor = "#8E3A98"
 
 font = "Figtree"

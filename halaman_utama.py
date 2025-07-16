@@ -82,9 +82,31 @@ DFVAR = {
     "DISTR": "kecamatan",
 }
 
-## ---- CSS ---- ##
+## ---- Configs & scripts ---- ##
 with open("./style.css", mode="r", encoding="utf-8") as css:
     st.markdown( f"<style>{css.read()}</style>", unsafe_allow_html=True)
+
+st.set_page_config(
+    page_title=PAGE_TITLE,
+    page_icon=":signal_strength:",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        "About":"Tugas matrikulasi bidang Manajemen Operasional oleh Hartono Wijaya."
+                "Terakhir diperbarui Juli 2025."
+    }
+)
+
+## ---- svg xml ---- ##
+logo_svg = f"""
+<svg version="1.1" id="Layer_2"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 501.1 501.1"
+	 style="enable-background:new 0 0 501.1 501.1;" xml:space="preserve">
+    <polygon stroke="#FFFFFF" fill="{st.get_option('theme.primaryColor')}" stroke-width="1" stroke-miterlimit="10" points="0,250.6 250.6,501.1 405.9,
+        345.8 250.6, 190.4 190.4,250.6 290.6,350.8 250.6,390.9 150.3,290.6 120.3,260.6 110.2,250.6 250.6,
+        110.2 265.6,125.3 290.6,150.3 446,305.7 501.1,250.6 250.6,0 	"/>
+</svg>
+"""
 
 ### Helper Functions ###
 ########################
@@ -152,7 +174,7 @@ def GISMap_render_img():
         selection_mode="single",
         format_func=prepend_alat_icons,
     )
-    path_img = f"data_img/Peta {sel_GISimg}.png"
+    path_img = f"assets_img/Peta {sel_GISimg}.png"
 
     if sel_GISimg:
         with st.container(border=True):
@@ -350,29 +372,20 @@ def call_ActiveMap(df, m_engine):
 ### Main Function ###
 #####################
 def main():
-    ## ---- Configs ---- ##
-    st.set_page_config(
-        page_title=PAGE_TITLE,
-        page_icon=":signal_strength:",
-        layout="wide",
-        initial_sidebar_state="expanded",
-        )
-
+    st.logo(logo_svg)
     st.title(PAGE_TITLE)
     st.caption("Tugas dashboard **:streamlit: Streamlit** dari Bidang Manajemen Operasional.")
 
     gdf_metadata = load_full_gdf()
 
     ## ---- Tabs ---- ##
-    tabs = st.tabs(["GIS Map", "Interactive Map", "Custom Map"])
+    tabs = st.tabs(["GIS Map", "Interactive Map"])
 
     with tabs[0]:
-        # st.info("Under construction. Coming soon!", icon="⚒️")
         # Show GIS map PNGs/JPEGs
         GISMap_render_img()
 
     with tabs[1]:
-        st.info("Under construction. Coming soon!", icon="⚒️")
         with st.container(border=True):
             # Filter
             gdf_filtered = ActiveMap_df_filter(gdf_metadata)
@@ -385,7 +398,7 @@ def main():
                 m_engine = st.radio(
                     label="Map engine:",
                     label_visibility="visible",
-                    options=["No map", "Folium", "PyDeck"],
+                    options=["No map", "Folium"],
                     horizontal=True,
                     disabled=disable_map,
                 )
@@ -401,9 +414,6 @@ def main():
             else:
                 warn_nodata()
             st.divider()
-
-    with tabs[2]:
-        st.info("Under construction. Coming soon!", icon="⚒️")
 
     ## ---- end main() ---- ##
 
