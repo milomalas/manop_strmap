@@ -166,7 +166,7 @@ def GISMap_render_img():
     1. Add segmented control buttons to select image to view.
     2. View image with `st.image`. If no image is selected, show info callout.
     '''
-    opts_GISimg = ALAT_DESCS.keys()
+    opts_GISimg = ["Semua"] + list(ALAT_DESCS.keys())
     sel_GISimg  = st.segmented_control(
         "Pilih peta:",
         label_visibility="visible",
@@ -175,13 +175,18 @@ def GISMap_render_img():
         format_func=prepend_alat_icons,
     )
     path_img = f"assets_img/Peta {sel_GISimg}.png"
+    
+    if sel_GISimg in ALAT_DESCS:
+        capt_GISimg = f"{ALAT_DESCS[sel_GISimg]["full name"]} - "
+    else: 
+        capt_GISimg = ""
+    capt_GISimg += "Dibuat dengan QGIS"
 
     if sel_GISimg:
         with st.container(border=True):
             st.image(
                 path_img,
-                caption=f"{ALAT_DESCS[sel_GISimg]["full name"]}"
-                         " - Rendered with QGIS",
+                caption=capt_GISimg,
                 use_container_width=True,
             )
         with st.columns(5)[2]:
@@ -301,7 +306,7 @@ def ActiveMap_folium(filtered_df):
     list_prov = filtered_df[DFVAR["PROV"]].unique().tolist()
 
     # MarkerCluster toggle
-    chk_cluster = st.checkbox("Cluster markers", value=True)
+    chk_cluster = st.checkbox("Gabungkan pin-pin yang berdekatan", value=True)
     if chk_cluster:
         # Make prov cluster groups (if toggled)
         list_fg = [
@@ -379,7 +384,7 @@ def main():
     gdf_metadata = load_full_gdf()
 
     ## ---- Tabs ---- ##
-    tabs = st.tabs(["GIS Map", "Interactive Map"])
+    tabs = st.tabs(["Peta GIS statis", "Peta interaktif"])
 
     with tabs[0]:
         # Show GIS map PNGs/JPEGs
